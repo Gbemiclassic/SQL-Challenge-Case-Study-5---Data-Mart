@@ -6,10 +6,6 @@
 - [Business Task](#business-task)
 - [Entity Relationship Diagram](#entity-relationship-diagram)
 - [Case Study Solution](#case-study-solution)
-  - [1. Data Cleansing Steps](#a-data-cleansing-steps)
-  - [2. Data Exploration](#b-data-exploration)
-  - [3. Before & After Analysis](#c-before--after-analysis)
-  - [4. Bonus Question](#d-bonus-question)
 ***
 
 ## Business Task
@@ -31,7 +27,7 @@ For this case study there is only a single table: data_mart.weekly_sales
 <img width="287" alt="image" src="https://github.com/Gbemiclassic/SQL-Challenge-Case-Study-5---Data-Mart/blob/main/Images/Entity%20Relationship%20Diagram.png">
 
 
-Column Dictionary
+### Column Dictionary
 
 1. Data Mart has international operations using a multi-`region` strategy.
 2. Data Mart has both, a retail and online `platform` in the form of a Shopify store front to serve their customers.
