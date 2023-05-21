@@ -1,13 +1,13 @@
 SELECT * 
-FROM weekly_sales;
+FROM weekly_sales
+LIMIT 10;
 
 
 DROP TABLE IF EXISTS clean_weekly_sales;
 CREATE TABLE clean_weekly_sales AS
 SELECT 
     STR_TO_DATE(week_date, '%d/%m/%y') week_date
-	,FLOOR((DAYOFYEAR(STR_TO_DATE(week_date, '%d/%m/%y')) - 1) / 7) + 1  week_number /* To achieve the requirement in the question such that value from 
-	the 1st of January to 7th of January will be 1, 8th to 14th will be 2 etc */
+    ,WEEKOFYEAR(STR_TO_DATE(week_date, '%d/%m/%y')) week_number
     ,MONTH(STR_TO_DATE(week_date, '%d/%m/%y')) month_number
     ,YEAR(STR_TO_DATE(week_date, '%d/%m/%y')) calendar_year
     ,region
@@ -31,8 +31,7 @@ SELECT
 FROM weekly_sales
 ORDER BY 1;
 
-SELECT * 
-FROM clean_weekly_sales;
+
 
 
 
@@ -48,19 +47,19 @@ FROM clean_weekly_sales; -- Monday
 
 
 -- 2. What range of week numbers are missing from the dataset?
-WITH RECURSIVE number_series AS
+WITH RECURSIVE complete_weeks AS
 (
-  SELECT 1 AS my_number 
+  SELECT 1 AS weeks 
   UNION ALL
-  SELECT my_number + 1   
-  FROM number_series
-  WHERE my_number < 52
+  SELECT weeks + 1   
+  FROM complete_weeks
+  WHERE weeks < 52
 )
-SELECT my_number
-FROM number_series n
-LEFT JOIN clean_weekly_sales s
-  ON n.my_number = s.week_number
-WHERE s.week_number IS NULL;
+SELECT weeks
+FROM complete_weeks c
+LEFT JOIN clean_weekly_sales cws
+  ON c.weeks = cws.week_number
+WHERE cws.week_number IS NULL;
 
 -- Weeks 1 to 11 and weeks 37 to 52 are missing in the week_number column
 
@@ -138,7 +137,7 @@ SELECT
 	 calendar_year
 	,platform
 	,ROUND(AVG(avg_transaction),0) AS avg_transaction_column
-	,SUM(sales) / sum(transactions) AS avg_transaction_grouped
+	,ROUND(SUM(sales) / sum(transactions), 2) AS avg_transaction_grouped
 FROM clean_weekly_sales
 GROUP BY 1, 2
 ORDER BY 1, 2;
@@ -153,12 +152,12 @@ We would include all week_date values for 2020-06-15 as the start of the
 period after the change and the previous week_date values would be before
 */
 
--- To get the week number corresponding to '2020-06-15'
+-- First, we need to get the week number corresponding to '2020-06-15'
 SELECT 
-  DISTINCT week_number
+DISTINCT week_number
 FROM clean_weekly_sales
 WHERE week_date = '2020-06-15' 
-  AND calendar_year = '2020';
+AND calendar_year = '2020';
 
 
 /*	1. What is the total sales for the 4 weeks before and after 2020-06-15? 
@@ -167,8 +166,8 @@ WHERE week_date = '2020-06-15'
 
 WITH cte AS (
 SELECT
-	SUM(CASE WHEN week_number BETWEEN 20 AND 23 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 27 THEN sales ELSE 0 END) after_change
+	SUM(CASE WHEN week_number BETWEEN 21 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 28 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
 WHERE calendar_year = '2020'
 )
@@ -186,8 +185,8 @@ FROM cte;
 
 WITH cte AS (
 SELECT
-	SUM(CASE WHEN week_number BETWEEN 12 AND 23 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 35 THEN sales ELSE 0 END) after_change
+	SUM(CASE WHEN week_number BETWEEN 13 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 36 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
 WHERE calendar_year = '2020'
 )
@@ -198,8 +197,8 @@ SELECT
     ,CONCAT(ROUND(100 *((after_change / before_change) - 1), 2), '%') pct_diff_after_change
 FROM cte;
 
-/*  Extending the date range to 12 weeks before and after the introduction of the chnage, 
-we see a further sales decline of around a -2.14% .
+/*  Extending the date range to 12 weeks before and after the introduction of the chaage, 
+we see a further sales decline of around -2.14% .
  */
 
 /*How do the sale metrics for these 2 periods before and after compare with the previous years in 2018 and 2019? */
@@ -209,8 +208,8 @@ we see a further sales decline of around a -2.14% .
 WITH cte AS (
 SELECT
 	calendar_year
-	,SUM(CASE WHEN week_number < 24 AND week_number >= 20 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 27 THEN sales ELSE 0 END) after_change
+	,SUM(CASE WHEN week_number BETWEEN 21 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 28 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
 GROUP BY 1
 )
@@ -227,8 +226,8 @@ FROM cte;
 WITH cte AS (
 SELECT
 	 calendar_year
-	,SUM(CASE WHEN week_number BETWEEN 12 AND 23 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 35 THEN sales ELSE 0 END) after_change
+	,SUM(CASE WHEN week_number BETWEEN 13 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 36 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
 GROUP BY 1
 )
@@ -259,10 +258,9 @@ Do you have any further recommendations for Danny’s team at Data Mart or any i
 WITH cte AS (
 SELECT
 	 region
-	,SUM(CASE WHEN week_number BETWEEN 12 AND 23 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 35 THEN sales ELSE 0 END) after_change
+	,SUM(CASE WHEN week_number BETWEEN 13 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 36 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
-WHERE calendar_year = '2020'
 GROUP BY 1
 )
 SELECT
@@ -272,16 +270,16 @@ SELECT
     ,after_change - before_change AS diff_after_change
     ,ROUND(100 *((after_change / before_change) - 1), 2) pct_diff_after_change
 FROM cte
-ORDER BY 5 ASC;
+ORDER BY 5;
 
--- Asia had the highest negative impact in 2020
+-- Asia had the highest negative impact in 2020 at -1.33%
 
 -- platform
 WITH cte AS (
 SELECT
 	 platform
-	,SUM(CASE WHEN week_number BETWEEN 12 AND 23 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 35 THEN sales ELSE 0 END) after_change
+	,SUM(CASE WHEN week_number BETWEEN 13 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 36 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
 WHERE calendar_year = '2020'
 GROUP BY 1
@@ -295,15 +293,14 @@ SELECT
 FROM cte
 ORDER BY 5 ASC;
 
-
 -- Retail had the highest negative impact in 2020
 
 -- age_band
 WITH cte AS (
 SELECT
 	 age_band
-	,SUM(CASE WHEN week_number BETWEEN 12 AND 23 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 35 THEN sales ELSE 0 END) after_change
+	,SUM(CASE WHEN week_number BETWEEN 13 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 36 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
 WHERE calendar_year = '2020'
 GROUP BY 1
@@ -324,8 +321,8 @@ ORDER BY 5 ASC;
 WITH cte AS (
 SELECT
 	 demographic
-	,SUM(CASE WHEN week_number BETWEEN 12 AND 23 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 35 THEN sales ELSE 0 END) after_change
+	,SUM(CASE WHEN week_number BETWEEN 13 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 36 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
 WHERE calendar_year = '2020'
 GROUP BY 1
@@ -346,8 +343,8 @@ ORDER BY 5 ASC;
 WITH cte AS (
 SELECT
 	 customer_type
-	,SUM(CASE WHEN week_number BETWEEN 12 AND 23 THEN sales ELSE 0 END) before_change
-    ,SUM(CASE WHEN week_number BETWEEN 24 AND 35 THEN sales ELSE 0 END) after_change
+	,SUM(CASE WHEN week_number BETWEEN 13 AND 24 THEN sales ELSE 0 END) before_change
+    ,SUM(CASE WHEN week_number BETWEEN 25 AND 36 THEN sales ELSE 0 END) after_change
 FROM clean_weekly_sales
 WHERE calendar_year = '2020'
 GROUP BY 1
