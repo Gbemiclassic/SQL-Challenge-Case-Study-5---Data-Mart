@@ -1,5 +1,5 @@
 # Case Study #5: Data Mart
-
+<p align="center" style="margin-bottom: 0px !important;">
 <img src="https://github.com/Gbemiclassic/SQL-Challenge-Case-Study-5---Data-Mart/blob/main/Images/Case%20Study%20Pics.png" alt="Image" width="500" height="520">
 
 ## 🧾 Table of Contents
